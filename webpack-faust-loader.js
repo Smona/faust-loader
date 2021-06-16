@@ -10,7 +10,8 @@ module.exports = async function (content) {
 
   const dspPath = interpolateName(this, "[name]", { content, context });
   await fs.writeFile(dspPath, content);
-  const { stdout, stderr } = await exec(`faust2wasm -worklet ${dspPath}`);
+  const { stderr } = await exec(`faust2wasm -worklet ${dspPath}`);
+  if (stderr) this.emitError(stderr);
   await fs.unlink(dspPath);
 
   const wasmName = interpolateName(this, "[name].wasm", { context, content });
@@ -28,5 +29,16 @@ module.exports = async function (content) {
   await fs.unlink(`${dspPath}-processor.js`);
   await fs.unlink(`${dspPath}.js`);
 
-  callback(null, `export default "${dspPath}"`);
+  callback(
+    null,
+    `
+  import loadProcessor from "../dist/loadProcessor.js";
+
+  function create${dspPath}Node(context) {
+    return loadProcessor(context, "${dspPath}")
+  }
+
+  export default create${dspPath}Node;
+`
+  );
 };
