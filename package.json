@@ -1,0 +1,22 @@
+{
+  "name": "webpack-faust-loader",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "test": "webpack build -c webpack.config.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "loader-utils": "^2.0.0",
+    "tmp": "^0.2.1"
+  },
+  "devDependencies": {
+    "@types/loader-utils": "^2.0.2",
+    "webpack": "^5.39.0",
+    "webpack-cli": "^4.7.2"
+  }
+}
