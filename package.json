@@ -1,11 +1,11 @@
 {
-  "name": "webpack-faust-loader",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "faust-loader",
+  "version": "0.1.0",
+  "main": "dist/faustLoader.js",
   "scripts": {
     "build": "tsc",
-    "serve": "webpack serve -c webpack.config.js",
-    "test": "webpack build -c webpack.config.js"
+    "serve": "webpack serve -c test/webpack.config.js",
+    "test": "webpack build -c test/webpack.config.js"
   },
   "keywords": [],
   "author": "",

@@ -1,11 +1,12 @@
-const { getOptions, interpolateName } = require("loader-utils");
-const util = require("util");
-const exec = util.promisify(require("child_process").exec);
-const fs = require("fs").promises;
+import { getOptions, interpolateName } from "loader-utils";
+import { LoaderDefinitionFunction } from "webpack";
+import util from "util";
+import { exec as execCallback } from "child_process";
+const exec = util.promisify(execCallback);
+import { promises as fs } from "fs";
 
-module.exports = async function (content) {
+const faustLoader: LoaderDefinitionFunction = async function (content) {
   const options = getOptions(this);
-  var callback = this.async();
   const context = options.context || this.rootContext;
 
   const dspPath = interpolateName(this, "[name]", { content, context });
@@ -29,9 +30,7 @@ module.exports = async function (content) {
   await fs.unlink(`${dspPath}-processor.js`);
   await fs.unlink(`${dspPath}.js`);
 
-  callback(
-    null,
-    `
+  return `
   import loadProcessor from "../dist/loadProcessor.js";
 
   function create${dspPath}Node(context) {
@@ -39,6 +38,7 @@ module.exports = async function (content) {
   }
 
   export default create${dspPath}Node;
-`
-  );
+`;
 };
+
+export default faustLoader;

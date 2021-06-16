@@ -2,10 +2,13 @@ const path = require("path");
 
 module.exports = {
   mode: "development",
-  entry: path.resolve(__dirname, "src", "index.js"),
+  entry: path.resolve(__dirname, "index.js"),
   output: {
     path: path.resolve(__dirname, "build"),
     filename: "my-first-webpack.bundle.js",
+  },
+  devServer: {
+    contentBase: "test",
   },
   module: {
     rules: [
@@ -13,7 +16,7 @@ module.exports = {
         test: /\.dsp$/,
         use: [
           {
-            loader: path.resolve("./webpack-faust-loader.js"),
+            loader: path.resolve("./dist/faustLoader.js"),
           },
         ],
       },
