@@ -2,7 +2,6 @@ const { getOptions, interpolateName } = require("loader-utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const fs = require("fs").promises;
-const tmp = require("tmp-promise");
 
 module.exports = async function (content) {
   const options = getOptions(this);
