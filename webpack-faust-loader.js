@@ -1,41 +1,33 @@
 const { getOptions, interpolateName } = require("loader-utils");
-const { exec } = require("child_process");
-const fs = require("fs");
-const tmp = require("tmp");
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
+const fs = require("fs").promises;
+const tmp = require("tmp-promise");
 
-module.exports = async function (source) {
+module.exports = async function (content) {
   const options = getOptions(this);
+  var callback = this.async();
+  const context = options.context || this.rootContext;
 
-  tmp.file((err, path, fd) => {
-    if (err) throw err;
+  const dspPath = interpolateName(this, "[name]", { content, context });
+  await fs.writeFile(dspPath, content);
+  const { stdout, stderr } = await exec(`faust2wasm -worklet ${dspPath}`);
+  await fs.unlink(dspPath);
 
-    fs.write(fd, source, (err) => {
-      if (err) throw err;
+  const wasmName = interpolateName(this, "[name].wasm", { context, content });
+  const wasmContent = await fs.readFile(`${dspPath}.wasm`);
+  this.emitFile(wasmName, wasmContent);
 
-      exec(`faust2wasm -worklet ${path}`, (err, stdout, stderr) => {
-        if (err) throw err;
-        console.log(stderr);
-
-        const segments = path.split("/");
-        const fileName = segments[segments.length - 1];
-        fs.rename(
-          `${fileName}.wasm`,
-          `${interpolateName(this, "[name].wasm", {})}`,
-          (err) => {
-            if (err) throw err;
-          }
-        );
-        fs.rename(
-          `${fileName}-processor.js`,
-          `${interpolateName(this, "[name]-processor.js", {})}`,
-          (err) => {
-            if (err) throw err;
-          }
-        );
-        fs.unlink(`${fileName}.js`, (err) => {
-          if (err) throw err;
-        });
-      });
-    });
+  const processorName = interpolateName(this, "[name]-processor.js", {
+    context,
+    content,
   });
+  const processorContent = await fs.readFile(`${dspPath}-processor.js`);
+  this.emitFile(processorName, processorContent);
+
+  await fs.unlink(`${dspPath}.wasm`);
+  await fs.unlink(`${dspPath}-processor.js`);
+  await fs.unlink(`${dspPath}.js`);
+
+  callback(null, `export default "${dspPath}"`);
 };
