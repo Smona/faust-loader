@@ -1,6 +1,6 @@
 {
   "name": "faust-loader",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "main": "dist/faustLoader.js",
   "scripts": {
     "build": "tsc",
@@ -15,8 +15,7 @@
   "dependencies": {
     "fs-extra": "^10.0.0",
     "loader-utils": "^2.0.0",
-    "standardized-audio-context": "^25.2.7",
-    "tmp-promise": "^3.0.2"
+    "standardized-audio-context": "^25.2.7"
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.11",
