@@ -57,6 +57,13 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
   const processorContent = await fs.readFile(processorPath);
   this.emitFile(path.join(outputPath, processorName), processorContent);
 
+  await Promise.all([
+    fs.remove(dspPath),
+    fs.remove(path.resolve(workDirPath, `${dspName}.js`)),
+    fs.remove(wasmPath),
+    fs.remove(processorPath),
+  ]);
+
   const importPath = await new Promise((res) => {
     this.resolve(context, "faust-loader", (err, result) => {
       if (err) throw err;
