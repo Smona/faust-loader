@@ -6,7 +6,7 @@ Import [Faust](https://faust.grame.fr/) .dsp files, and get back an AudioWorklet
 
 ## Installation
 
-1. Install the Faust compiler:
+1. Install the Faust compiler (has to be v2 or greater):
 
 - on Arch: `sudo pacman -S faust`
 - Ubuntu: `sudo apt-get update && sudo apt-get install faust`
