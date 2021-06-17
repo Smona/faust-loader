@@ -2,21 +2,22 @@
 
 Import [Faust](https://faust.grame.fr/) .dsp files, and get back an AudioWorklet or ScriptProcessor node.
 
+Bundles faust2wasm from Faust 2.30.5
+
 **Note: this library is still in development, and is not ready for production usage yet**
 
 ## Installation
 
-1. Install the Faust compiler:
+1. Install the Faust compiler. This package bundles the `faust2wasm` tool needed to generate output files,
+   so a minimal compiler install should be sufficient. Libfaust is available from many package managers (including
+   Ubuntu, Arch and Debian) and on [many platforms](https://faust.grame.fr/downloads/).
 
-- on Arch: `sudo pacman -S faust`
-- Ubuntu: `sudo apt-get update && sudo apt-get install faust`
-
-1. Install faust-loader:
+2. Install faust-loader:
 
 - `npm install --save-dev faust-loader`
 - `yarn add -D faust-loader`
 
-1. Add faust-loader to your webpack config:
+3. Add faust-loader to your webpack config:
 
 ```
 module: {

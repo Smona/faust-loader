@@ -5,7 +5,8 @@ import path from "path";
 import os from "os";
 import { exec as execCallback } from "child_process";
 const exec = util.promisify(execCallback);
-import { promises as fs } from "fs";
+import fs from "fs-extra";
+import tmp from "tmp-promise";
 
 interface Options {
   outputPath?: string;
@@ -18,28 +19,35 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
   const options: Options = getOptions(this);
   const { outputPath = "", publicPath = "/" } = options;
   const context = this.rootContext;
+  const workDir = await tmp.dir();
 
   const dspName = interpolateName(this, "[name]", { content, context });
-  const dspPath = path.resolve(os.tmpdir(), dspName);
+  const dspPath = path.resolve(workDir.path, dspName);
 
   await fs.writeFile(dspPath, content);
-  const faust2wasmPath = await new Promise((res) => {
-    this.resolve(context, "faust-loader/faust2wasm", (err, result) => {
+  const faust2wasmPath = await new Promise<string>((res) => {
+    this.resolve(context, "faust-loader", (err, result) => {
       if (err) throw err;
-      res(result);
+      if (typeof result !== "string")
+        throw new Error("Unable to find faust2wasm command");
+
+      res(path.resolve(result, "../../faust2appls"));
     });
   });
-  if (typeof faust2wasmPath !== "string")
-    throw new Error("Unable to find faust2wasm command");
 
-  await fs.copyFile(faust2wasmPath, path.join(os.tmpdir(), "faust2wasm"));
-  const { stderr } = await exec(`./faust2wasm -worklet ${dspPath}`, {
-    cwd: os.tmpdir(),
+  await fs.copy(faust2wasmPath, path.resolve(os.tmpdir(), "faust2appls"), {
+    overwrite: false,
   });
+  const { stderr } = await exec(
+    `source ../faust2appls/faust2wasm -worklet ${dspPath}`,
+    {
+      cwd: workDir.path,
+    }
+  );
   if (stderr) this.emitError(new Error(stderr));
 
   const wasmName = interpolateName(this, "[name].wasm", { context, content });
-  const wasmPath = path.resolve(os.tmpdir(), `${dspName}.wasm`);
+  const wasmPath = path.resolve(workDir.path, `${dspName}.wasm`);
   const wasmContent = await fs.readFile(wasmPath);
   // TODO: this method should accept a buffer
   // PR: https://github.com/webpack/webpack/pull/13577
@@ -49,18 +57,9 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
     context,
     content,
   });
-  const processorPath = path.resolve(os.tmpdir(), `${dspName}-processor.js`);
+  const processorPath = path.resolve(workDir.path, `${dspName}-processor.js`);
   const processorContent = await fs.readFile(processorPath);
   this.emitFile(path.join(outputPath, processorName), processorContent);
-
-  // Clean up temporary files
-  await Promise.all([
-    fs.unlink(dspPath),
-    fs.unlink(wasmPath),
-    fs.unlink(processorPath),
-    fs.unlink(path.resolve(os.tmpdir(), `${dspName}.js`)),
-    fs.unlink(path.resolve(os.tmpdir(), `faust2wasm`)),
-  ]);
 
   return `
   import loadProcessor from "../dist/loadProcessor.js";
