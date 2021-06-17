@@ -1,6 +1,6 @@
 {
   "name": "faust-loader",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "dist/faustLoader.js",
   "scripts": {
     "build": "tsc",

@@ -1,5 +1,4 @@
 import { getOptions, interpolateName } from "loader-utils";
-import { validate } from "schema-utils";
 import { LoaderDefinitionFunction } from "webpack";
 import util from "util";
 import path from "path";
@@ -17,24 +16,6 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
   content
 ) {
   const options: Options = getOptions(this);
-  validate(
-    {
-      properties: {
-        outputPath: {
-          description:
-            "The output path of the generated WASM and AudioWorkletProcessor files.",
-          type: "string",
-        },
-        publicPath: {
-          description:
-            "The url path generated WASM and AudioWorkletProcessor files will be served from.",
-          type: "string",
-        },
-      },
-    },
-    options
-  );
-
   const { outputPath = "", publicPath = "/" } = options;
   const context = this.rootContext;
 
