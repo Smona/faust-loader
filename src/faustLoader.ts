@@ -57,8 +57,18 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
   const processorContent = await fs.readFile(processorPath);
   this.emitFile(path.join(outputPath, processorName), processorContent);
 
+  const importPath = await new Promise((res) => {
+    this.resolve(context, "faust-loader", (err, result) => {
+      if (err) throw err;
+      if (typeof result !== "string")
+        throw new Error("Unable to find faust2wasm command");
+
+      res(path.resolve(result, "../loadProcessor.js"));
+    });
+  });
+
   return `
-  import loadProcessor from "../dist/loadProcessor.js";
+  import loadProcessor from "${importPath}";
 
   function create${dspName}Node(context) {
     return loadProcessor(context, "${dspName}", "${publicPath}")
