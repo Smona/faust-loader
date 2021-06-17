@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#####################################################################
+#                                                                   #
+#               Defines the best optimisation flags to use          #
+#               on the various platforms. This file is called       #
+#               by the faust2xxx scripts. It sets two variables     #
+#               $MYGCCFLAGS and $MYICCFLAGS                         #
+#               (c) Grame, 2013                                     #
+#                                                                   #
+#####################################################################
+
+#-------------------------------------------------------------------
+# Default compilation flags for gcc and icc :
+#
+if [[ $(uname -m) == armv6l ]]; then        # for Raspberry PI
+    MYGCCFLAGS="-std=c++11 -O3 -march=armv6zk -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -ffast-math -ftree-vectorize"
+elif [[ $(uname -s) == Darwin ]]; then      # for macOS
+    if [[ $(uname -m) == arm64 ]]; then
+        # Silicon MX
+        MYGCCFLAGS="-std=c++11 -Ofast"
+    else
+        # Intel
+        MYGCCFLAGS="-std=c++11 -Ofast -march=native"
+    fi
+    MYGCCFLAGSGENERIC="-std=c++11 -Ofast"
+else                                        # for Linux (Intel)
+    MYGCCFLAGS="-std=c++11 -Ofast -march=native"
+    MYGCCFLAGSGENERIC="-std=c++11 -Ofast"
+fi
+
+# For Linux (intel) with icc
+MYICCFLAGS="-std=c++11 -O3 -xHost -ftz -fno-alias -fp-model fast=2"
+
+# Default compilers
+
+# Set default value for CXX
+if [ "$CXX" = "" ]; then
+    CXX=c++
+fi
+
+# Set default value for CC
+if [ "$CC" = "" ]; then
+    CC=cc
+fi
+
+LIPO=lipo
