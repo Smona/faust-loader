@@ -1,6 +1,6 @@
 {
   "name": "faust-loader",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "main": "dist/faustLoader.js",
   "scripts": {
     "build": "tsc",
@@ -14,8 +14,7 @@
   "repository": "github:Smona/faust-loader",
   "dependencies": {
     "fs-extra": "^10.0.0",
-    "loader-utils": "^2.0.0",
-    "standardized-audio-context": "^25.2.7"
+    "loader-utils": "^2.0.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.11",
@@ -24,5 +23,8 @@
     "webpack": "^5.39.0",
     "webpack-cli": "^4.7.2",
     "webpack-dev-server": "^3.11.2"
+  },
+  "peerDependencies": {
+    "standardized-audio-context": "^25.0.0"
   }
 }
