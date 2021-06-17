@@ -2,15 +2,22 @@
 
 Import [Faust](https://faust.grame.fr/) .dsp files, and get back an AudioWorklet or ScriptProcessor node.
 
+**Note: this library is still in development, and is not ready for production usage yet**
+
 ## Installation
 
 1. Install the Faust compiler:
-  - on Arch: `sudo pacman -S faust`
-  - Ubuntu: `sudo apt-get update && sudo apt-get install faust`
+
+- on Arch: `sudo pacman -S faust`
+- Ubuntu: `sudo apt-get update && sudo apt-get install faust`
+
 1. Install faust-loader:
-  - `npm install --save-dev faust-loader`
-  - `yarn add -D faust-loader`
+
+- `npm install --save-dev faust-loader`
+- `yarn add -D faust-loader`
+
 1. Add faust-loader to your webpack config:
+
 ```
 module: {
     rules: [
@@ -28,12 +35,13 @@ module: {
 ```
 
 ## Usage
+
 ```ts
 import { AudioContext } from "standardized-audio-context";
 import createCompressor from "./Compressor.dsp";
 
 const context = new AudioContext();
-createCompressor(context).then(node => {
+createCompressor(context).then((node) => {
   node.connect(context.destination);
   node.getParams();
   node.setParam("attack", 0.3);

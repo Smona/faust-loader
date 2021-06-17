@@ -8,9 +8,10 @@
     "test": "webpack build -c test/webpack.config.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Mason Bourgeois",
   "license": "ISC",
-  "description": "",
+  "description": "Import Faust .dsp files, and get back an AudioWorklet or ScriptProcessor node ",
+  "repository": "github:Smona/faust-loader",
   "dependencies": {
     "loader-utils": "^2.0.0",
     "standardized-audio-context": "^25.2.7"
