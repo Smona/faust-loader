@@ -27,6 +27,10 @@ module: {
         use: [
           {
             loader: "faust-loader",
+            options: {
+              outputPath: "processors",       // Where the generated files will be placed relative to the output directory
+              publicPath: "/build/processors" // Where the generated files will be served from
+            }
           },
         ],
       },

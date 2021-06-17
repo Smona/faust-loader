@@ -77,10 +77,12 @@ const importObject = {
 
 export default async function loadProcessor(
   context: IAudioContext,
-  name: string
+  name: string,
+  baseURL: string
 ) {
+  const cleanedBaseURL = baseURL.endsWith("/") ? baseURL : `${baseURL}/`;
   // Load DSP wasm
-  const dspFile = await fetch(`/build/${name}.wasm`);
+  const dspFile = await fetch(`${cleanedBaseURL}${name}.wasm`);
   const dspBuffer = await dspFile.arrayBuffer();
   const dspModule = await WebAssembly.compile(dspBuffer);
   const dspInstance = await WebAssembly.instantiate(dspModule, importObject);
@@ -99,7 +101,9 @@ export default async function loadProcessor(
 
   // Load processor script, if necessary
   if (!loadedProcessors.includes(name)) {
-    await context.audioWorklet.addModule(`/build/${name}-processor.js`);
+    await context.audioWorklet.addModule(
+      `${cleanedBaseURL}${name}-processor.js`
+    );
     loadedProcessors.push(name);
   }
 

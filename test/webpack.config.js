@@ -17,6 +17,10 @@ module.exports = {
         use: [
           {
             loader: path.resolve("./dist/faustLoader.js"),
+            options: {
+              outputPath: "./processors",
+              publicPath: "/build/processors",
+            },
           },
         ],
       },

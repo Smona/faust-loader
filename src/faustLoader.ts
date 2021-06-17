@@ -7,9 +7,29 @@ import { exec as execCallback } from "child_process";
 const exec = util.promisify(execCallback);
 import { promises as fs } from "fs";
 
-const faustLoader: LoaderDefinitionFunction = async function (content) {
-  const options = getOptions(this);
-  const context = options.context || this.rootContext;
+interface Options {
+  outputPath?: string;
+  publicPath?: string;
+}
+
+const faustLoader: LoaderDefinitionFunction<Options> = async function (
+  content
+) {
+  const { outputPath = "", publicPath = "/" } = this.getOptions({
+    properties: {
+      outputPath: {
+        description:
+          "The output path of the generated WASM and AudioWorkletProcessor files.",
+        type: "string",
+      },
+      publicPath: {
+        description:
+          "The url path generated WASM and AudioWorkletProcessor files will be served from.",
+        type: "string",
+      },
+    },
+  });
+  const context = this.rootContext;
 
   const dspName = interpolateName(this, "[name]", { content, context });
   const dspPath = path.resolve(os.tmpdir(), dspName);
@@ -25,7 +45,7 @@ const faustLoader: LoaderDefinitionFunction = async function (content) {
   const wasmContent = await fs.readFile(wasmPath);
   // TODO: this method should accept a buffer
   // PR: https://github.com/webpack/webpack/pull/13577
-  this.emitFile(wasmName, wasmContent);
+  this.emitFile(path.join(outputPath, wasmName), wasmContent);
 
   const processorName = interpolateName(this, "[name]-processor.js", {
     context,
@@ -33,7 +53,7 @@ const faustLoader: LoaderDefinitionFunction = async function (content) {
   });
   const processorPath = path.resolve(os.tmpdir(), `${dspName}-processor.js`);
   const processorContent = await fs.readFile(processorPath);
-  this.emitFile(processorName, processorContent);
+  this.emitFile(path.join(outputPath, processorName), processorContent);
 
   // Clean up temporary files
   await Promise.all([
@@ -47,7 +67,7 @@ const faustLoader: LoaderDefinitionFunction = async function (content) {
   import loadProcessor from "../dist/loadProcessor.js";
 
   function create${dspName}Node(context) {
-    return loadProcessor(context, "${dspName}")
+    return loadProcessor(context, "${dspName}", "${publicPath}")
   }
 
   export default create${dspName}Node;
