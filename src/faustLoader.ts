@@ -24,7 +24,7 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
 
   await fs.writeFile(dspPath, content);
   const faust2wasmPath = await new Promise((res) => {
-    this.resolve(context, "./faust2wasm", (err, result) => {
+    this.resolve(context, "faust-loader/faust2wasm", (err, result) => {
       if (err) throw err;
       res(result);
     });

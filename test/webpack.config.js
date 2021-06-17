@@ -10,6 +10,11 @@ module.exports = {
   devServer: {
     contentBase: "test",
   },
+  resolve: {
+    alias: {
+      "faust-loader": ".",
+    },
+  },
   module: {
     rules: [
       {
