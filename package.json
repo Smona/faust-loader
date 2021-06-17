@@ -1,8 +1,9 @@
 {
   "name": "faust-loader",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "main": "dist/faustLoader.js",
   "scripts": {
+    "prepare": "install-peers",
     "build": "tsc",
     "serve": "webpack serve -c test/webpack.config.js",
     "test": "webpack build -c test/webpack.config.js"
@@ -14,11 +15,13 @@
   "repository": "github:Smona/faust-loader",
   "dependencies": {
     "fs-extra": "^10.0.0",
-    "loader-utils": "^2.0.0"
+    "loader-utils": "^2.0.0",
+    "tmp-promise": "^3.0.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.11",
     "@types/loader-utils": "^2.0.2",
+    "install-peers-cli": "^2.2.0",
     "typescript": "^4.3.2",
     "webpack": "^5.39.0",
     "webpack-cli": "^4.7.2",
