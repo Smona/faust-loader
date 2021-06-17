@@ -1,6 +1,6 @@
 {
   "name": "faust-loader",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "main": "dist/faustLoader.js",
   "scripts": {
     "prepare": "install-peers",

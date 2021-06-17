@@ -31,18 +31,15 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
     });
   });
 
-  await fs.copy(faust2wasmPath, path.resolve(workDir.path, "faust2appls"));
+  await fs.copy(faust2wasmPath, workDir.path);
 
   const dspName = interpolateName(this, "[name]", { content, context });
   const dspPath = path.resolve(workDir.path, dspName);
 
   await fs.writeFile(dspPath, content);
-  const { stderr } = await exec(
-    `./faust2appls/faust2wasm -worklet ${dspPath}`,
-    {
-      cwd: workDir.path,
-    }
-  );
+  const { stderr } = await exec(`./faust2wasm -worklet ${dspPath}`, {
+    cwd: workDir.path,
+  });
   if (stderr) this.emitError(new Error(stderr));
 
   const wasmName = interpolateName(this, "[name].wasm", { context, content });
