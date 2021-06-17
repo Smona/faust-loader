@@ -1,6 +1,6 @@
 {
   "name": "faust-loader",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "main": "dist/faustLoader.js",
   "scripts": {
     "build": "tsc",
@@ -14,8 +14,7 @@
   "repository": "github:Smona/faust-loader",
   "dependencies": {
     "loader-utils": "^2.0.0",
-    "standardized-audio-context": "^25.2.7",
-    "tmp-promise": "^3.0.2"
+    "standardized-audio-context": "^25.2.7"
   },
   "devDependencies": {
     "@types/loader-utils": "^2.0.2",
