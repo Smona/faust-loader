@@ -23,7 +23,17 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
   const dspPath = path.resolve(os.tmpdir(), dspName);
 
   await fs.writeFile(dspPath, content);
-  const { stderr } = await exec(`faust2wasm -worklet ${dspPath}`, {
+  const faust2wasmPath = await new Promise((res) => {
+    this.resolve(context, "./faust2wasm", (err, result) => {
+      if (err) throw err;
+      res(result);
+    });
+  });
+  if (typeof faust2wasmPath !== "string")
+    throw new Error("Unable to find faust2wasm command");
+
+  await fs.copyFile(faust2wasmPath, path.join(os.tmpdir(), "faust2wasm"));
+  const { stderr } = await exec(`./faust2wasm -worklet ${dspPath}`, {
     cwd: os.tmpdir(),
   });
   if (stderr) this.emitError(new Error(stderr));
@@ -49,6 +59,7 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
     fs.unlink(wasmPath),
     fs.unlink(processorPath),
     fs.unlink(path.resolve(os.tmpdir(), `${dspName}.js`)),
+    fs.unlink(path.resolve(os.tmpdir(), `faust2wasm`)),
   ]);
 
   return `
