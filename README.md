@@ -42,7 +42,7 @@ createCompressor(context).then(node => {
 
 faust-loader makes use of [standardized-audio-context](https://github.com/chrisguttandin/standardized-audio-context) for
 instantiating AudioWorkletNodes. This allows it to automatically fallback to a ScriptProcessorNode on Safari and other
-browsers that don't support AudioWorklets, as well as interoperate seamlessly with [Tone.js], a popular web audio framework.
+browsers that don't support AudioWorklets, as well as interoperate seamlessly with [Tone.js](https://github.com/Tonejs/Tone.js), a popular web audio framework.
 
 Because of this, you have to use an AudioContext from `standardized-audio-context` when creating Faust nodes. If you want
 to use this loader with a vanilla AudioContext, please submit an issue or PR!
