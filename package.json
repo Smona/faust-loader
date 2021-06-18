@@ -1,6 +1,6 @@
 {
   "name": "faust-loader",
-  "version": "0.5.7",
+  "version": "1.0.0",
   "main": "dist/faustLoader.js",
   "scripts": {
     "prepare": "install-peers",
@@ -11,7 +11,7 @@
   "keywords": [],
   "author": "Mason Bourgeois",
   "license": "ISC",
-  "description": "Import Faust .dsp files, and get back an AudioWorklet or ScriptProcessor node ",
+  "description": "Webpack loader for Faust .dsp files",
   "repository": "github:Smona/faust-loader",
   "dependencies": {
     "fs-extra": "^10.0.0",

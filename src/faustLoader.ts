@@ -54,8 +54,14 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
     content,
   });
   const processorPath = path.resolve(workDir.path, processorName);
-  const processorContent = await fs.readFile(processorPath);
-  this.emitFile(path.join(outputPath, processorName), processorContent);
+  const processorContent = await fs.readFile(processorPath, {
+    encoding: "utf8",
+  });
+  const cleanedProcessorContent = processorContent.replace(
+    /console\.log\(this\);/,
+    ""
+  );
+  this.emitFile(path.join(outputPath, processorName), cleanedProcessorContent);
 
   const importPath = await new Promise((res) => {
     this.resolve(context, "faust-loader", (err, result) => {
