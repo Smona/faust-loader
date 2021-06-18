@@ -58,3 +58,41 @@ browsers that don't support AudioWorklets, as well as interoperate seamlessly wi
 
 Because of this, you have to use an AudioContext from `standardized-audio-context` when creating Faust nodes. If you want
 to use this loader with a vanilla AudioContext, please submit an issue or PR!
+
+### With Tone.js
+
+```ts
+import { getContext, connect } from "tone";
+import createSynth from "./Synthesizer.dsp";
+
+async function connectSynth() {
+  const context = getContext();
+
+  // `context` is the Tone Context, we need to get the raw standardized-audio-context.
+  const node = await createSynth(context.rawContext);
+
+  // We also need to use the global `connect` function since the node isn't a Tone AudioNode.
+  connect(node, context.destination);
+}
+```
+
+### With Next.js
+
+```js
+// next.config.js
+
+module.exports = {
+  webpack: (config, { isServer }) => {
+    config.module.rules.push({
+      test: [/\.dsp$/],
+      loader: "faust-loader",
+      options: {
+        outputPath: `${isServer ? "../" : ""}static/processors/`,
+        publicPath: "/_next/static/processors",
+      },
+    });
+
+    return config;
+  },
+};
+```
