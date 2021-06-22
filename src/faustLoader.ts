@@ -2,7 +2,6 @@ import { getOptions, interpolateName } from "loader-utils";
 import { LoaderDefinitionFunction } from "webpack";
 import util from "util";
 import path from "path";
-import os from "os";
 import { exec as execCallback } from "child_process";
 const exec = util.promisify(execCallback);
 import fs from "fs-extra";
@@ -12,6 +11,21 @@ interface Options {
   outputPath?: string;
   publicPath?: string;
 }
+
+export interface FaustAudioProcessorNode extends AudioWorkletNode {
+  getNumInputs(): number;
+  getNumOutputs(): number;
+  getParam(address: string): number;
+  getParams(): string[];
+  setParam(address: string, value: number): void;
+  getJson(): string;
+  getState(): Promise<Record<string, number>>;
+  destroy(): void;
+}
+
+export type ProcessorLoader = (
+  context: any
+) => Promise<FaustAudioProcessorNode | null | undefined>;
 
 const faustLoader: LoaderDefinitionFunction<Options> = async function (
   content

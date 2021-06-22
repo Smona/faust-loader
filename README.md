@@ -62,6 +62,24 @@ browsers that don't support AudioWorklets, as well as interoperate seamlessly wi
 Because of this, you have to use an AudioContext from `standardized-audio-context` when creating Faust nodes. If you want
 to use this loader with a vanilla AudioContext, please submit an issue or PR!
 
+### With Typescript
+
+Typescript definitions are available for the imported modules. To automatically get the correct types when you
+import a `.dsp` file, add a file ending in `.d.ts` to your project containing the following:
+
+```ts
+// faust-modules.d.ts
+
+declare module "*.dsp" {
+  import { ProcessorLoader } from "faust-loader";
+  const loader: ProcessorLoader;
+  export = loader;
+}
+```
+
+You may need to update your `tsconfig.json` to ensure declaration files in your
+project are included by the Typescript compiler.
+
 ### With Tone.js
 
 ```ts
