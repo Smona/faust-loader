@@ -11,12 +11,12 @@ getting the WASM version of libfaust working in NodeJS.
 1. Install the Faust compiler version >=2.30.5. You can [download it](https://faust.grame.fr/downloads/) or
    [build it from source](https://github.com/grame-cncm/faust/wiki/BuildingSimple). It's also available from the AUR.
 
-2. Install faust-loader:
+2. Install faust-loader and standardized-audio-context:
 
 ```bash
-npm install --save-dev faust-loader
+npm install --save faust-loader standardized-audio-context
 # OR
-yarn add -D faust-loader
+yarn add faust-loader standardized-audio-context
 ```
 
 3. Add faust-loader to your webpack config:
