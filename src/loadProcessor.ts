@@ -10,7 +10,39 @@ function heap2Str(buf: Uint8Array) {
   return str;
 }
 
-const loadedProcessors: string[] = [];
+const processorModules: Record<string, Promise<void>> = {};
+async function loadProcessorModule(context: IAudioContext, url: string) {
+  if (!context.audioWorklet) {
+    console.error(
+      "Error loading FaustAudioProcessorNode: standardized-audio-context AudioWorklet isn't supported in this environment."
+    );
+    return null;
+  }
+
+  const existing = processorModules[url];
+
+  if (existing) {
+    return existing;
+  }
+
+  processorModules[url] = context.audioWorklet.addModule(url);
+  return processorModules[url];
+}
+
+const wasmModules: Record<string, Promise<WebAssembly.Module>> = {};
+async function getWasmModule(url: string) {
+  const existing = wasmModules[url];
+
+  if (existing) {
+    return existing;
+  }
+
+  wasmModules[url] = fetch(url)
+    .then((response) => response.arrayBuffer())
+    .then((dspBuffer) => WebAssembly.compile(dspBuffer));
+  return wasmModules[url];
+}
+
 const importObject = {
   env: {
     memoryBase: 0,
@@ -81,31 +113,18 @@ export default async function loadProcessor(
   baseURL: string
 ) {
   const cleanedBaseURL = baseURL.endsWith("/") ? baseURL : `${baseURL}/`;
-  // Load DSP wasm
-  const dspFile = await fetch(`${cleanedBaseURL}${name}.wasm`);
-  const dspBuffer = await dspFile.arrayBuffer();
-  const dspModule = await WebAssembly.compile(dspBuffer);
+
+  const [dspModule] = await Promise.all([
+    getWasmModule(`${cleanedBaseURL}${name}.wasm`),
+    loadProcessorModule(context, `${cleanedBaseURL}${name}-processor.js`),
+  ]);
+
   const dspInstance = await WebAssembly.instantiate(dspModule, importObject);
 
   const HEAPU8 = new Uint8Array(dspInstance.exports.memory.buffer);
   const json = heap2Str(HEAPU8);
   const json_object = JSON.parse(json);
   const processorOptions = { wasm_module: dspModule, json: json };
-
-  if (!context.audioWorklet) {
-    console.error(
-      "Error loading FaustAudioProcessorNode: standardized-audio-context AudioWorklet isn't supported in this environment."
-    );
-    return null;
-  }
-
-  // Load processor script, if necessary
-  if (!loadedProcessors.includes(name)) {
-    await context.audioWorklet.addModule(
-      `${cleanedBaseURL}${name}-processor.js`
-    );
-    loadedProcessors.push(name);
-  }
 
   const nodeOptions = {
     numberOfInputs: parseInt(json_object.inputs) > 0 ? 1 : 0,
