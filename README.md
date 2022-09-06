@@ -21,7 +21,7 @@ yarn add faust-loader standardized-audio-context
 
 3. Add faust-loader to your webpack config:
 
-```
+```ts
 module: {
     rules: [
     // ...
