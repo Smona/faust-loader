@@ -23,6 +23,7 @@ module.exports = {
         use: {
           loader: "ts-loader",
           options: {
+            // TODO: re-enable type checking once loader types are fixed
             transpileOnly: true,
           },
         },
