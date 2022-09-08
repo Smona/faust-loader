@@ -10,7 +10,6 @@ function heap2Str(buf: Uint8Array) {
   return str;
 }
 
-const processorModules: Record<string, Promise<void>> = {};
 async function loadProcessorModule(context: IAudioContext, url: string) {
   if (!context.audioWorklet) {
     console.error(
@@ -19,14 +18,10 @@ async function loadProcessorModule(context: IAudioContext, url: string) {
     return null;
   }
 
-  const existing = processorModules[url];
-
-  if (existing) {
-    return existing;
-  }
-
-  processorModules[url] = context.audioWorklet.addModule(url);
-  return processorModules[url];
+  // The audio worklet handles caching of modules by URL in the same context.
+  // Adding an already-loaded module to a different context will trigger another
+  // network request, but the browser cache should catch it.
+  return context.audioWorklet.addModule(url);
 }
 
 const wasmModules: Record<string, Promise<WebAssembly.Module>> = {};
