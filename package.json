@@ -1,6 +1,6 @@
 {
   "name": "faust-loader",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "main": "dist/faustLoader.js",
   "types": "dist/faustLoader.d.ts",
   "scripts": {
