@@ -7,7 +7,8 @@
     "prepare": "install-peers",
     "build": "tsc --project tsconfig.build.json",
     "serve": "webpack serve -c test/webpack.config.js",
-    "test": "webpack build -c test/webpack.config.js"
+    "test": "webpack build -c test/webpack.config.js",
+    "prepublishOnly": "yarn build && yarn test"
   },
   "keywords": ["webpack", "loader", "faust", "audio", "dsp"],
   "author": "Mason Bourgeois",
