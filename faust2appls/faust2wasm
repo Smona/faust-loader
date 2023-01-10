@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 . faustpath
 . faustoptflags
@@ -35,8 +35,7 @@ EXPORTED_POLY="['_"$name"_poly_constructor','_"$name"_poly_destructor','_"$name"
 # existing *.dsp files          -> FILES
 #
 
-while [ $1 ]
-do
+while [ $1 ]; do
     p=$1
 
     if [ $p = "-help" ] || [ $p = "-h" ]; then
@@ -55,7 +54,7 @@ do
         option -npm "add a package.json file for npm package distribution"
         exit
     fi
-    
+
     if [ $p = "-comb" ]; then
         COMB="true"
     elif [ $p = "-poly" ]; then
@@ -80,14 +79,14 @@ do
     elif [ $p = "-npm" ]; then
         NPM="true"
     elif [ ${p:0:1} = "-" ]; then
-	    OPTIONS="$OPTIONS $p"
-	elif [[ -f "$p" ]]; then
-	    FILES="$FILES $p"
-	else
-	    OPTIONS="$OPTIONS $p"        
-	fi
+        OPTIONS="$OPTIONS $p"
+    elif [[ -f "$p" ]]; then
+        FILES="$FILES $p"
+    else
+        OPTIONS="$OPTIONS $p"
+    fi
 
-shift
+    shift
 
 done
 
@@ -140,18 +139,18 @@ BINARIES=""
 
 if [ $COMB = "false" ]; then
 
-for f in $FILES; do
-    name=$(basename "$f" .dsp)
-    
-    # compile the Faust DSP to C++ or wasm code
-    if [ $EMCC = "true" ] ; then
-        faust -a $FAUSTARCH/webaudio/$CODE_WRAPPER1 -i -uim -cn $name $OPTIONS $f -o $name.cpp || exit
-    else
-        faust -lang $WASM -cn $name $OPTIONS $f -o $name.wasm || exit
+    for f in $FILES; do
+        name=$(basename "$f" .dsp)
 
-        # possibly compile effect
-        if [ "$EFFECT" = "auto" ]; then
-        cat > $name"_effect".dsp << EndOfCode
+        # compile the Faust DSP to C++ or wasm code
+        if [ $EMCC = "true" ]; then
+            faust -a $FAUSTARCH/webaudio/$CODE_WRAPPER1 -i -uim -cn $name $OPTIONS $f -o $name.cpp || exit
+        else
+            faust -lang $WASM -cn $name $OPTIONS $f -o $name.wasm || exit
+
+            # possibly compile effect
+            if [ "$EFFECT" = "auto" ]; then
+                cat >$name"_effect".dsp <<EndOfCode
             adapt(1,1) = _;
             adapt(2,2) = _,_;
             adapt(1,2) = _ <: _,_;
@@ -159,139 +158,139 @@ for f in $FILES; do
             adaptor(F,G) = adapt(outputs(F),inputs(G));
             process = adaptor(library("$f").process, library("$f").effect) : library("$f").effect;
 EndOfCode
-            faust -lang $WASM $OPTIONS -cn effect $name"_effect".dsp -o $name"_effect".wasm || exit
-            rm $name"_effect".dsp
-        elif [ "$EFFECT" != "" ]; then
-            faust -lang $WASM $OPTIONS -cn effect $EFFECT -o $name"_effect".wasm || exit
+                faust -lang $WASM $OPTIONS -cn effect $name"_effect".dsp -o $name"_effect".wasm || exit
+                rm $name"_effect".dsp
+            elif [ "$EFFECT" != "" ]; then
+                faust -lang $WASM $OPTIONS -cn effect $EFFECT -o $name"_effect".wasm || exit
+            fi
+
+            # wasm ==> wasm optimizations
+            if [ $OPT = "true" ]; then
+                echo "Optimize wasm module"
+                wasm-opt $name.wasm -O3 -o $name.wasm
+            fi
         fi
 
-        # wasm ==> wasm optimizations
-        if [ $OPT = "true" ]; then
-            echo "Optimize wasm module"
-            wasm-opt $name.wasm -O3 -o $name.wasm
-        fi
-    fi
+        if [ $EMCC = "true" ]; then
 
-    if [ $EMCC = "true" ]; then
-        
-        # prepare emcc compilation files
-        if [ $POLY = false ]; then
-            EXPORTED=EXPORTED_MONO
+            # prepare emcc compilation files
+            if [ $POLY = false ]; then
+                EXPORTED=EXPORTED_MONO
+            else
+                EXPORTED=EXPORTED_POLY
+            fi
+
+            # compile the C++ code to wasm
+            emcc -O2 --memory-init-file 0 $name.cpp -s TOTAL_MEMORY=100663296 --post-js $FAUSTARCH/webaudio/$JS_WRAPPER -o $name-temp.js \
+                -s EXPORTED_FUNCTIONS=$EXPORTED || exit
+
+            # compose the wasm code
+            sed -e "s/DSP/"$name"/g" $name-temp.js >$name.js
+
+            rm $name-temp.js
+            rm $name.cpp
         else
-            EXPORTED=EXPORTED_POLY
-        fi
-    
-        # compile the C++ code to wasm
-        emcc -O2 --memory-init-file 0 $name.cpp -s TOTAL_MEMORY=100663296 --post-js $FAUSTARCH/webaudio/$JS_WRAPPER -o $name-temp.js \
-            -s EXPORTED_FUNCTIONS=$EXPORTED || exit
-       
-        # compose the wasm code
-        sed -e "s/DSP/"$name"/g" $name-temp.js > $name.js
-        
-        rm $name-temp.js
-        rm $name.cpp
-    else
 
-        if [ "$EFFECT" != "" ]; then
-            cat $name"_effect".js >> $name.js
-            rm $name"_effect".js
+            if [ "$EFFECT" != "" ]; then
+                cat $name"_effect".js >>$name.js
+                rm $name"_effect".js
+            fi
+
+            if [ $WORKLET = "true" ]; then
+                cp $name.js $name-processor.js
+                sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 >>$name-processor.js
+                if [ $WAP = "2" ]; then
+                    sed -e "s/class\ mydsp\ /"export\ default\ class\ $name\ "/g" $FAUSTARCH/webaudio/$CODE_WRAPPER2 >$name_tmp1.js
+                    sed -e "s/mydsp/"$name"/g" $name_tmp1.js >>$name.js
+                else
+                    sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER2 >>$name.js
+                fi
+            else
+                if [ $WAP = "2" ]; then
+                    sed -e "s/class\ mydsp\ /"export\ default\ class\ $name\ "/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 >$name_tmp1.js
+                    sed -e "s/mydsp/"$name"/g" $name_tmp1.js >>$name.js
+                else
+                    sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 >>$name.js
+                fi
+            fi
         fi
 
+        # create additional files for WAP
+        if [ $WAP = "1" ] || [ $WAP = "2" ]; then
+
+            # create the main.json file
+            echo "{" >main.json
+            echo "\"name\": \"$name\"," >>main.json
+            echo "\"vendor\": \"Faust\"," >>main.json
+            echo "\"version\": \"1.01\"," >>main.json
+            echo "\"homepage\": \"https://faust.grame.fr\"," >>main.json
+            echo "\"thumbnail\": \"default.png\"" >>main.json
+            echo "}" >>main.json
+
+            # compose the HTML test page
+            if [ $POLY = true ]; then
+                if [ $WAP = "2" ]; then
+                    cp $FAUSTARCH/webaudio/testWAP2Poly.html test$name-tmp1.html
+                else
+                    cp $FAUSTARCH/webaudio/testWAPPoly.html test$name-tmp1.html
+                fi
+            else
+                if [ $WAP = "2" ]; then
+                    cp $FAUSTARCH/webaudio/testWAP2.html test$name-tmp1.html
+                else
+                    cp $FAUSTARCH/webaudio/testWAP.html test$name-tmp1.html
+                fi
+            fi
+            sed -e "s/VENDOR/"Faust"/g" test$name-tmp1.html >>test$name-tmp2.html
+            sed -e "s/DSP/"$name"/g" test$name-tmp2.html >test$name.html
+        fi
+
+        # collect binary file name
         if [ $WORKLET = "true" ]; then
-            cp $name.js $name-processor.js
-            sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 >> $name-processor.js
-            if [ $WAP = "2" ]; then
-            	sed -e "s/class\ mydsp\ /"export\ default\ class\ $name\ "/g" $FAUSTARCH/webaudio/$CODE_WRAPPER2 > $name_tmp1.js
-            	sed -e "s/mydsp/"$name"/g" $name_tmp1.js >> $name.js
+            rm -f $name"_effect".wasm test$name-tmp1.html test$name-tmp2.html
+            if [ $WAP = "1" ] || [ $WAP = "2" ]; then
+                mv $name.js main.js
+                mv test$name.html index.html
+                BINARIES="$BINARIES main.js, $name.wasm, main.json, index.html"
             else
-            	sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER2 >> $name.js
+                BINARIES="$BINARIES$name.js, $name-processor.js, $name.wasm"
             fi
         else
-            if [ $WAP = "2" ]; then
-            	sed -e "s/class\ mydsp\ /"export\ default\ class\ $name\ "/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 > $name_tmp1.js
-            	sed -e "s/mydsp/"$name"/g" $name_tmp1.js >> $name.js
-            else
-            	sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 >> $name.js
-            fi
+            BINARIES="$BINARIES$name.js, $name.wasm"
         fi
-    fi
 
-    # create additional files for WAP
-    if [ $WAP = "1" ] || [ $WAP = "2" ]; then
-
-        # create the main.json file
-        echo "{" > main.json
-        echo "\"name\": \"$name\"," >> main.json
-        echo "\"vendor\": \"Faust\"," >> main.json
-        echo "\"version\": \"1.01\"," >> main.json
-        echo "\"homepage\": \"https://faust.grame.fr\"," >> main.json
-        echo "\"thumbnail\": \"default.png\"" >> main.json
-        echo "}" >> main.json
-    	
-        # compose the HTML test page
-        if [ $POLY = true ]; then
-        	if [ $WAP = "2" ]; then
-                cp $FAUSTARCH/webaudio/testWAP2Poly.html test$name-tmp1.html
-        	else
-                cp $FAUSTARCH/webaudio/testWAPPoly.html test$name-tmp1.html
-        	fi
-        else
-        	if [ $WAP = "2" ]; then
-                cp $FAUSTARCH/webaudio/testWAP2.html test$name-tmp1.html
-        	else
-                cp $FAUSTARCH/webaudio/testWAP.html test$name-tmp1.html
-        	fi
+        if [ "$NPM" = "true" ]; then
+            sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/package.json >package.json
+            BINARIES="$BINARIES, package.json"
         fi
-        sed -e "s/VENDOR/"Faust"/g" test$name-tmp1.html >> test$name-tmp2.html
-        sed -e "s/DSP/"$name"/g" test$name-tmp2.html > test$name.html
-    fi
- 
-    # collect binary file name
-    if [ $WORKLET = "true" ]; then
-    	rm -f $name"_effect".wasm test$name-tmp1.html test$name-tmp2.html
-    	if [ $WAP = "1" ] || [ $WAP = "2" ]; then
-    		mv $name.js main.js
-    		mv test$name.html index.html
-        	BINARIES="$BINARIES main.js, $name.wasm, main.json, index.html"
-        else
-        	BINARIES="$BINARIES$name.js, $name-processor.js, $name.wasm"
-        fi
-    else
-        BINARIES="$BINARIES$name.js, $name.wasm"
-    fi
 
-    if [ "$NPM" = "true" ]; then
-        sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/package.json > package.json
-        BINARIES="$BINARIES, package.json"
-    fi
-    
-    BINARIES="$BINARIES;"
+        BINARIES="$BINARIES;"
 
-done
+    done
 
 else
 
-# TODO : worklet support
-echo "Compiled with 'comb' mode"
+    # TODO : worklet support
+    echo "Compiled with 'comb' mode"
 
-for f in $FILES; do
-    name=$(basename "$f" .dsp)
-    
-    # compile the Faust DSP to C++ or wasm code
-    if [ $EMCC = "true" ] ; then
-        faust -a $FAUSTARCH/webaudio/$CODE_WRAPPER1 -i -uim -cn $name $OPTIONS $f -o $name.cpp || exit
-    else
-        faust -lang $WASM -cn $name $OPTIONS $f -o $name.wasm || exit
+    for f in $FILES; do
+        name=$(basename "$f" .dsp)
 
-        # wasm ==> wasm optimizations
-        if [ $OPT = "true" ]; then
-            echo "Optimize $name wasm module"
-            wasm-opt $name.wasm -O3 -o $name.wasm
-        fi
+        # compile the Faust DSP to C++ or wasm code
+        if [ $EMCC = "true" ]; then
+            faust -a $FAUSTARCH/webaudio/$CODE_WRAPPER1 -i -uim -cn $name $OPTIONS $f -o $name.cpp || exit
+        else
+            faust -lang $WASM -cn $name $OPTIONS $f -o $name.wasm || exit
 
-        # possibly compile effect
-        if [ "$EFFECT" = "auto" ]; then
-            cat > $name"_effect".dsp << EndOfCode
+            # wasm ==> wasm optimizations
+            if [ $OPT = "true" ]; then
+                echo "Optimize $name wasm module"
+                wasm-opt $name.wasm -O3 -o $name.wasm
+            fi
+
+            # possibly compile effect
+            if [ "$EFFECT" = "auto" ]; then
+                cat >$name"_effect".dsp <<EndOfCode
             adapt(1,1) = _;
             adapt(2,2) = _,_;
             adapt(1,2) = _ <: _,_;
@@ -301,69 +300,69 @@ for f in $FILES; do
 
             process = adaptor(library("$f").process, library("$f").effect) : library("$f").effect;
 EndOfCode
-            faust -lang $WASM $OPTIONS -cn effect $name"_effect".dsp -o $name"_effect".wasm || exit
-            rm $name"_effect".dsp
-        elif [ "$EFFECT" != "" ]; then
-            faust -lang $WASM $OPTIONS -cn effect $EFFECT -o $name"_effect".wasm || exit
+                faust -lang $WASM $OPTIONS -cn effect $name"_effect".dsp -o $name"_effect".wasm || exit
+                rm $name"_effect".dsp
+            elif [ "$EFFECT" != "" ]; then
+                faust -lang $WASM $OPTIONS -cn effect $EFFECT -o $name"_effect".wasm || exit
+            fi
         fi
-    fi
+
+        if [ $EMCC = "true" ]; then
+
+            # prepare emcc compilation files
+            if [ $POLY = false ]; then
+                EXPORTED=EXPORTED_MONO
+            else
+                EXPORTED=EXPORTED_POLY
+            fi
+
+            # compose the wasm code
+            sed -e "s/DSP/"$name"/g" $FAUSTARCH/webaudio/$JS_WRAPPER >$name-wrapper.js
+
+            COMB_SRC+=$name.cpp
+            COMB_SRC+=" "
+
+            COMB_EXPORTED+=$COMB_SEP$EXPORTED
+            COMB_SEP=","
+
+            COMB_WRAPPED_FILES+=$name-wrapper.js
+            COMB_WRAPPED_FILES+=" "
+
+            COMB_WRAPPED+=" --post-js "
+            COMB_WRAPPED+=$name-wrapper.js
+
+        else
+            echo $name.js
+
+            if [ "$EFFECT" != "" ]; then
+                cat $name"_effect".js >>$name.js
+                rm $name"_effect".js
+            fi
+
+            sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 >>$name.js
+            cat $name.js >>comb.js
+            rm $name.js
+        fi
+
+    done
 
     if [ $EMCC = "true" ]; then
+        # compile final file
+        emcc -O2 --memory-init-file 0 $COMB_SRC -s TOTAL_MEMORY=100663296 $COMB_WRAPPED -o comb.js \
+            -s EXPORTED_FUNCTIONS="["$COMB_EXPORTED"]" || exit
 
-        # prepare emcc compilation files
-        if [ $POLY = false ]; then
-            EXPORTED=EXPORTED_MONO
-        else
-            EXPORTED=EXPORTED_POLY
-        fi
-
-        # compose the wasm code
-        sed -e "s/DSP/"$name"/g" $FAUSTARCH/webaudio/$JS_WRAPPER > $name-wrapper.js
-        
-        COMB_SRC+=$name.cpp
-        COMB_SRC+=" "
-        
-        COMB_EXPORTED+=$COMB_SEP$EXPORTED
-        COMB_SEP=","
-        
-        COMB_WRAPPED_FILES+=$name-wrapper.js
-        COMB_WRAPPED_FILES+=" "
-        
-        COMB_WRAPPED+=" --post-js "
-        COMB_WRAPPED+=$name-wrapper.js
-        
-    else
-        echo $name.js
-
-        if [ "$EFFECT" != "" ]; then
-            cat $name"_effect".js >> $name.js
-            rm $name"_effect".js
-        fi
-
-        sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/$CODE_WRAPPER1 >> $name.js
-        cat $name.js >> comb.js
-        rm $name.js
+        rm $COMB_SRC $COMB_WRAPPED_FILES
     fi
-  	
-done
 
-if [ $EMCC = "true" ]; then
-    # compile final file
-    emcc -O2 --memory-init-file 0 $COMB_SRC -s TOTAL_MEMORY=100663296 $COMB_WRAPPED -o comb.js \
-        -s EXPORTED_FUNCTIONS="["$COMB_EXPORTED"]" || exit
+    # collect binary file name
+    BINARIES="comb.js"
 
-    rm $COMB_SRC $COMB_WRAPPED_FILES
-fi
+    if [ "$NPM" = "true" ]; then
+        sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/package.json >package.json
+        BINARIES="$BINARIES, package.json"
+    fi
 
-# collect binary file name
-BINARIES="comb.js"
-
-if [ "$NPM" = "true" ]; then
-    sed -e "s/mydsp/"$name"/g" $FAUSTARCH/webaudio/package.json > package.json
-    BINARIES="$BINARIES, package.json"
-fi
-
-BINARIES="$BINARIES;"
+    BINARIES="$BINARIES;"
 
 fi
 
