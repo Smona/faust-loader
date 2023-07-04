@@ -17,11 +17,12 @@ async function loadProcessorModule(context: IAudioContext, url: string) {
     );
     return null;
   }
-
+  const processorBlob = await (await fetch(url)).blob();
+  const processorURL = URL.createObjectURL(processorBlob);
   // The audio worklet handles caching of modules by URL in the same context.
   // Adding an already-loaded module to a different context will trigger another
   // network request, but the browser cache should catch it.
-  return context.audioWorklet.addModule(url);
+  return context.audioWorklet.addModule(processorURL);
 }
 
 const wasmModules: Record<string, Promise<WebAssembly.Module>> = {};
@@ -105,13 +106,12 @@ const importObject = {
 export default async function loadProcessor(
   context: IAudioContext,
   name: string,
-  baseURL: string
+  wasmUrl: string,
+  processorUrl: string
 ) {
-  const cleanedBaseURL = baseURL.endsWith("/") ? baseURL : `${baseURL}/`;
-
   const [dspModule] = await Promise.all([
-    getWasmModule(`${cleanedBaseURL}${name}.wasm`),
-    loadProcessorModule(context, `${cleanedBaseURL}${name}-processor.js`),
+    getWasmModule(wasmUrl),
+    loadProcessorModule(context, processorUrl),
   ]);
 
   const dspInstance = await WebAssembly.instantiate(dspModule, importObject);

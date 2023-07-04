@@ -8,6 +8,7 @@ import fs from "fs-extra";
 import tmp from "tmp-promise";
 
 interface Options {
+  inline?: boolean;
   outputPath?: string;
   publicPath?: string;
 }
@@ -27,11 +28,16 @@ export type ProcessorLoader = (
   context: any
 ) => Promise<FaustAudioProcessorNode | null | undefined>;
 
+function toDataURL(content: Buffer, type = "application/octet-stream") {
+  const data = content.toString("base64");
+  return `data:${type};base64,${data}`;
+}
+
 const faustLoader: LoaderDefinitionFunction<Options> = async function (
   content
 ) {
   const options: Options = getOptions(this);
-  const { outputPath = "", publicPath = "/" } = options;
+  const { inline = false, outputPath = "", publicPath = "/" } = options;
   const context = this.rootContext;
   const workDir = await tmp.dir();
 
@@ -72,7 +78,15 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
     /console\.log\(this\);/,
     ""
   );
-  this.emitFile(path.join(outputPath, processorName), cleanedProcessorContent);
+
+  // Emit scripts if they shouldn't be embedded
+  if (!inline) {
+    this.emitFile(path.join(outputPath, wasmName), wasmContent);
+    this.emitFile(
+      path.join(outputPath, processorName),
+      cleanedProcessorContent
+    );
+  }
 
   const importPath = await new Promise((res) => {
     this.resolve(context, "faust-loader", (err, result) => {
@@ -84,11 +98,27 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
     });
   });
 
+  const cleanedBaseURL = publicPath.endsWith("/")
+    ? publicPath
+    : `${publicPath}/`;
+
+  const wasmURL = inline
+    ? toDataURL(wasmContent)
+    : `${cleanedBaseURL}${dspName}.wasm`;
+  const processorURL = inline
+    ? toDataURL(Buffer.from(cleanedProcessorContent), "text/javascript")
+    : `${cleanedBaseURL}${dspName}-processor.js`;
+
   return `
   import loadProcessor from "${importPath}";
 
   function create${dspName}Node(context) {
-    return loadProcessor(context, "${dspName}", "${publicPath}")
+    return loadProcessor(
+      context,
+      "${dspName}",
+      "${wasmURL}",
+      "${processorURL}"
+    )
   }
 
   export default create${dspName}Node;
