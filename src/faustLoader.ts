@@ -59,9 +59,6 @@ const faustLoader: LoaderDefinitionFunction<Options> = async function (
   const wasmName = interpolateName(this, "[name].wasm", { context, content });
   const wasmPath = path.resolve(workDir.path, wasmName);
   const wasmContent = await fs.readFile(wasmPath);
-  // TODO: this method should accept a buffer
-  // PR: https://github.com/webpack/webpack/pull/13577
-  this.emitFile(path.join(outputPath, wasmName), wasmContent);
 
   const processorName = interpolateName(this, "[name]-processor.js", {
     context,
