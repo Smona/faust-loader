@@ -1,6 +1,6 @@
 # faust-loader
 
-Import [Faust](https://faust.grame.fr/) .dsp files, and get back an AudioWorklet or ScriptProcessor node.
+Webpack loader for the [Faust language](https://faust.grame.fr/). Import `.dsp` files, and get back an AudioWorklet or ScriptProcessor node.
 
 This loader is confirmed working with Faust v2.30.5, but may break on lower versions.
 [Help is wanted](https://github.com/Smona/faust-loader/issues/1) on
@@ -24,16 +24,13 @@ yarn add faust-loader standardized-audio-context
 ```ts
 module: {
     rules: [
-    // ...
+      // ...
       {
         test: /\.dsp$/,
         use: [
           {
             loader: "faust-loader",
-            options: {
-              outputPath: "processors",       // Where the generated files will be placed relative to the output directory
-              publicPath: "/build/processors" // Where the generated files will be served from
-            }
+            options: { inline: true },
           },
         ],
       },
@@ -61,6 +58,28 @@ browsers that don't support AudioWorklets, as well as interoperate seamlessly wi
 
 Because of this, you have to use an AudioContext from `standardized-audio-context` when creating Faust nodes. If you want
 to use this loader with a vanilla AudioContext, please submit an issue or PR!
+
+## Loader Options
+
+### `inline = false`
+
+Switch between inline and split file modes.
+
+Inline mode embeds the AudioWorkletProcessor and WASM code in the Javascript bundle as base64 data URLs . This allows for single-file builds, and supports code splitting via dynamic imports (`await import()`).
+
+Split file mode (the default) emits separate files for the AudioWorkletProcessor and WASM in a specified `outputPath`, fetching them over the network from `publicPath`.
+
+Inline mode is recommended, since it's more flexible and easier to configure, and will likely become the default in a future release. However, emitting and fetching separate files may make sense if you are already serving webpack static assets and want to keep your main bundle size as small as possible.
+
+### `outputPath = ""`
+
+Where the generated files should be placed relative to the output directory in split file mode. Ignored when `inline: true`.
+
+### `publicPath = "/"`
+
+What base path the generated files will be served from in split file mode. Ignored when `inline: true`.
+
+## Examples
 
 ### With Typescript
 
@@ -95,25 +114,4 @@ async function connectSynth() {
   // We also need to use the global `connect` function since the node isn't a Tone AudioNode.
   connect(node, context.destination);
 }
-```
-
-### With Next.js
-
-```js
-// next.config.js
-
-module.exports = {
-  webpack: (config, { isServer }) => {
-    config.module.rules.push({
-      test: [/\.dsp$/],
-      loader: "faust-loader",
-      options: {
-        outputPath: `${isServer ? "../" : ""}static/processors/`,
-        publicPath: "/_next/static/processors",
-      },
-    });
-
-    return config;
-  },
-};
 ```
